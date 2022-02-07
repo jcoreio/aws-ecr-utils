@@ -41,6 +41,12 @@
       - [`options.imageUri` (`string`, **required**)](#optionsimageuri-string-required)
       - [`options.tags` (`string[]`, **required**)](#optionstags-string-required)
     - [Returns (`Promise<void>`)](#returns-promisevoid-2)
+  - [`upsertECRRepository(options)`](#upsertecrrepositoryoptions)
+    - [Options](#options-5)
+      - [`options.ecr` (`AWS.ECR`, _optional_)](#optionsecr-awsecr-optional-3)
+      - [`options.awsConfig` (`AWS.ConfigurationOptions`, _optional_)](#optionsawsconfig-awsconfigurationoptions-optional-3)
+      - [`options.repositoryName` (`string`, **required**)](#optionsrepositoryname-string-required)
+    - [Returns (`Promise<AWS.ECR.Repository>`)](#returns-promiseawsecrrepository)
 
 ## `copyECRImage(options)`
 
@@ -165,3 +171,25 @@ The tags to add to the ECR image
 ### Returns (`Promise<void>`)
 
 A promise that will resolve once the tags have been added.
+
+## `upsertECRRepository(options)`
+
+Creates an ECR repository if it doesn't already exist.
+
+### Options
+
+#### `options.ecr` (`AWS.ECR`, _optional_)
+
+The ECR client to use
+
+#### `options.awsConfig` (`AWS.ConfigurationOptions`, _optional_)
+
+The AWS service options to use if `options.ecr` isn't provided
+
+#### `options.repositoryName` (`string`, **required**)
+
+The name of the repository to upsert
+
+### Returns (`Promise<AWS.ECR.Repository>`)
+
+The found or created ECR repository

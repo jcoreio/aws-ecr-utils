@@ -1,0 +1,7 @@
+// @flow
+
+declare export default function upsertECRRepository(options: {
+  ecr?: any,
+  awsConfig?: { ... },
+  repositoryName: string,
+}): Promise<any>
