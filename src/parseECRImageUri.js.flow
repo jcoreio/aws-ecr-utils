@@ -1,0 +1,8 @@
+// @flow
+
+declare export default function parseECRImageUri(imageUri: string): {|
+  registryId: string,
+  region: string,
+  repositoryName: string,
+  imageTag: string,
+|}

@@ -1,0 +1,14 @@
+// @flow
+
+declare export default function copyECRImage(options: {|
+  from: {
+    imageUri: string,
+    ecr: any,
+    awsConfig: { ... },
+  },
+  to: {
+    imageUri: string,
+    ecr: any,
+    awsConfig: { ... },
+  },
+|}): Promise<void>

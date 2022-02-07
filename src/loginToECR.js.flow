@@ -1,0 +1,6 @@
+// @flow
+
+declare export default function loginToECR(options: {
+  ecr?: any,
+  awsConfig?: { ... },
+}): Promise<void>

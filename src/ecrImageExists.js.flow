@@ -1,0 +1,10 @@
+// @flow
+
+declare export default function ecrImageExists(options: {|
+  ecr?: any,
+  awsConfig?: { ... },
+  imageUri?: string,
+  registryId?: string,
+  repositoryName?: string,
+  imageTag?: string,
+|}): Promise<boolean>

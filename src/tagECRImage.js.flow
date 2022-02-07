@@ -1,0 +1,8 @@
+// @flow
+
+declare export default function tagECRImage(options: {|
+  ecr?: any,
+  awsConfig?: { ... },
+  imageUri: string,
+  tags: string[],
+|}): Promise<void>
