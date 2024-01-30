@@ -59,7 +59,8 @@
     "base64-js": "^1.5.1",
     "inquirer": "^8.2.6",
     "is-interactive": "^1.0.0",
-    "promisify-child-process": "^4.1.1"
+    "promisify-child-process": "^4.1.1",
+    "zod": "^3.22.4"
   },
   "main": "dist/index.js",
   "module": "dist/index.mjs",
