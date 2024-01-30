@@ -1,7 +1,9 @@
+import AWS from 'aws-sdk'
+
 export default function parseECRImageUri(imageUri: string): {
-  registryId: string
+  registryId: AWS.ECR.RegistryId
   region: string
-  repositoryName: string
+  repositoryName: AWS.ECR.RepositoryName
   imageTag: string
 } {
   const match = /(\d+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com\/([^:]+):(.+)/.exec(
