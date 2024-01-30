@@ -173,7 +173,7 @@ The policy should include:
         repositoryName,
       })}`
     )
-    return true
+    return await checkECRImageAccess({ awsConfig, imageUri, log, ecr })
   }
   return false
 }
