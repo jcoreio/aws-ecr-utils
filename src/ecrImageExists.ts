@@ -1,4 +1,8 @@
-import AWS from 'aws-sdk'
+import {
+  DescribeImagesCommand,
+  ECRClient,
+  ECRClientConfig,
+} from '@aws-sdk/client-ecr'
 
 export default async function ecrImageExists({
   ecr,
@@ -8,8 +12,8 @@ export default async function ecrImageExists({
   repositoryName,
   imageTag,
 }: {
-  ecr?: AWS.ECR
-  awsConfig?: AWS.ConfigurationOptions
+  ecr?: ECRClient
+  awsConfig?: ECRClientConfig
   imageUri?: string
   registryId?: string
   repositoryName?: string
@@ -24,18 +28,19 @@ export default async function ecrImageExists({
     ;[, registryId, region, repositoryName, imageTag] = match
   }
   if (!region) region = awsConfig?.region
-  if (!ecr) ecr = new AWS.ECR({ ...awsConfig, region })
+  if (!ecr) ecr = new ECRClient({ ...awsConfig, region })
 
   if (!repositoryName || !imageTag) {
     throw new Error(`missing repositoryName/imageTag or imageUri`)
   }
   return await ecr
-    .describeImages({
-      registryId,
-      repositoryName,
-      imageIds: [{ imageTag }],
-    })
-    .promise()
+    .send(
+      new DescribeImagesCommand({
+        registryId,
+        repositoryName,
+        imageIds: [{ imageTag }],
+      })
+    )
     .then(
       () => true,
       () => false

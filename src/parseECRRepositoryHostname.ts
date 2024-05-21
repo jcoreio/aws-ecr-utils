@@ -1,9 +1,7 @@
-import AWS from 'aws-sdk'
-
 export default function parseECRRepositoryHostname(hostname: string): {
-  registryId: AWS.ECR.RegistryId
+  registryId: string
   region: string
-  repositoryName: AWS.ECR.RepositoryName
+  repositoryName: string
 } {
   const match = /^([^.]+)\.dkr\.ecr\.([^.]+)\.amazonaws\.com\/([^:]+)/.exec(
     hostname

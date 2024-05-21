@@ -1,4 +1,9 @@
-import AWS from 'aws-sdk'
+import {
+  ECRClient,
+  ECRClientConfig,
+  GetRepositoryPolicyCommand,
+  SetRepositoryPolicyCommand,
+} from '@aws-sdk/client-ecr'
 import inquirer from 'inquirer'
 import isInteractive from 'is-interactive'
 
@@ -21,8 +26,8 @@ export default async function checkECRRepositoryPolicy({
   ],
   log = console,
 }: {
-  ecr?: AWS.ECR
-  awsConfig?: AWS.ConfigurationOptions
+  ecr?: ECRClient
+  awsConfig?: ECRClientConfig
   repositoryName: string
   awsPrincipal: string
   Action?: string[]
@@ -39,11 +44,10 @@ export default async function checkECRRepositoryPolicy({
     ? [awsPrincipal, `arn:aws:iam::${awsPrincipal}:root`]
     : [awsPrincipal]
 
-  if (!ecr) ecr = new AWS.ECR(awsConfig)
+  if (!ecr) ecr = new ECRClient({ ...awsConfig })
   const { policyText } = await ecr
-    .getRepositoryPolicy({ repositoryName })
-    .promise()
-    .catch((error): AWS.ECR.GetRepositoryPolicyResponse => {
+    .send(new GetRepositoryPolicyCommand({ repositoryName }))
+    .catch((error): { policyText?: string } => {
       if (error.name === 'RepositoryPolicyNotFoundException') return {}
       throw error
     })
@@ -131,12 +135,12 @@ The policy should include:
           ],
         }
       }
-      await ecr
-        .setRepositoryPolicy({
+      await ecr.send(
+        new SetRepositoryPolicyCommand({
           repositoryName,
           policyText: JSON.stringify(finalPolicy, null, 2),
         })
-        .promise()
+      )
       log.info(`updated policy on ECR repository ${repositoryName}`)
       return true
     }

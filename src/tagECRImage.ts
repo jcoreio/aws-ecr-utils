@@ -1,7 +1,12 @@
 /**
  * @prettier
  */
-import AWS from 'aws-sdk'
+import {
+  BatchGetImageCommand,
+  ECRClient,
+  ECRClientConfig,
+  PutImageCommand,
+} from '@aws-sdk/client-ecr'
 import parseECRImageUri from './parseECRImageUri'
 
 export default async function tagECRImage({
@@ -10,20 +15,21 @@ export default async function tagECRImage({
   imageUri,
   tags,
 }: {
-  ecr?: AWS.ECR
-  awsConfig?: AWS.ConfigurationOptions
+  ecr?: ECRClient
+  awsConfig?: ECRClientConfig
   imageUri: string
   tags: string[]
 }): Promise<void> {
   const { region, repositoryName, imageTag } = parseECRImageUri(imageUri)
-  if (!ecr) ecr = new AWS.ECR({ ...awsConfig, region })
+  if (!ecr) ecr = new ECRClient({ ...awsConfig, region })
 
   const imageManifest = await ecr
-    .batchGetImage({
-      repositoryName,
-      imageIds: [{ imageTag }],
-    })
-    .promise()
+    .send(
+      new BatchGetImageCommand({
+        repositoryName,
+        imageIds: [{ imageTag }],
+      })
+    )
     .then((r) => r?.images?.[0]?.imageManifest)
 
   if (!imageManifest) {
@@ -36,13 +42,13 @@ export default async function tagECRImage({
       // eslint-disable-next-line no-console
       console.error(`Adding tag ${repositoryName}:${tag}`)
       try {
-        await ecr
-          .putImage({
+        await ecr.send(
+          new PutImageCommand({
             repositoryName,
             imageManifest,
             imageTag: tag.substring(tag.indexOf(':') + 1),
           })
-          .promise()
+        )
       } catch (error) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((error as any)?.code !== 'ImageAlreadyExistsException') throw error

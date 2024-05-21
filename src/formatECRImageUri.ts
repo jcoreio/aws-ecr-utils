@@ -6,10 +6,10 @@ export default function formatECRImageUri({
   repositoryName,
   imageTag,
 }: {
-  registryId: AWS.ECR.RegistryId
+  registryId: string
   region: string
-  repositoryName: AWS.ECR.RepositoryName
-  imageTag: AWS.ECR.ImageTag
+  repositoryName: string
+  imageTag: string
 }): string {
   return `${formatECRRepositoryHostname({
     registryId,

@@ -1,21 +1,27 @@
 // @flow
 
-import AWS from 'aws-sdk'
+import {
+  CreateRepositoryCommand,
+  DescribeRepositoriesCommand,
+  ECRClient,
+  ECRClientConfig,
+  Repository,
+} from '@aws-sdk/client-ecr'
 
 export default async function upsertECRRepository({
   ecr,
   awsConfig,
   repositoryName,
 }: {
-  ecr?: AWS.ECR
-  awsConfig?: AWS.ConfigurationOptions
+  ecr?: ECRClient
+  awsConfig?: ECRClientConfig
   repositoryName: string
-}): Promise<AWS.ECR.Repository> {
-  if (!ecr) ecr = new AWS.ECR(awsConfig)
+}): Promise<Repository> {
+  if (!ecr) ecr = new ECRClient({ ...awsConfig })
   try {
-    const { repositories } = await ecr
-      .describeRepositories({ repositoryNames: [repositoryName] })
-      .promise()
+    const { repositories } = await ecr.send(
+      new DescribeRepositoriesCommand({ repositoryNames: [repositoryName] })
+    )
     const repository = repositories?.[0]
     if (repository) return repository
   } catch (error) {
@@ -24,9 +30,9 @@ export default async function upsertECRRepository({
 
   // eslint-disable-next-line no-console
   console.error(`Creating ECR repository {bold ${repositoryName}}...`)
-  const { repository } = await ecr
-    .createRepository({ repositoryName })
-    .promise()
+  const { repository } = await ecr.send(
+    new CreateRepositoryCommand({ repositoryName })
+  )
   if (!repository) {
     throw new Error(`repository is missing from createRepository response`)
   }

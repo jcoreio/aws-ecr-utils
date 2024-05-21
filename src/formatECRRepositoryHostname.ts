@@ -3,9 +3,9 @@ export default function formatECRRepositoryHostname({
   region,
   repositoryName,
 }: {
-  registryId: AWS.ECR.RegistryId
+  registryId: string
   region: string
-  repositoryName: AWS.ECR.RepositoryName
+  repositoryName: string
 }): string {
   return `${registryId}.dkr.ecr.${region}.amazonaws.com/${repositoryName}`
 }

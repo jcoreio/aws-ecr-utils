@@ -1,4 +1,13 @@
-import AWS from 'aws-sdk'
+import {
+  BatchCheckLayerAvailabilityCommand,
+  BatchGetImageCommand,
+  ECRClient,
+  ECRClientConfig,
+  GetDownloadUrlForLayerCommand,
+  GetRepositoryPolicyCommand,
+  SetRepositoryPolicyCommand,
+} from '@aws-sdk/client-ecr'
+import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts'
 import parseECRImageUri from './parseECRImageUri'
 import { ImageManifestSchema } from './ImageManifestSchema'
 import isInteractive from 'is-interactive'
@@ -12,15 +21,15 @@ export default async function checkECRImageAccess({
   imageUri,
   log = console,
 }: {
-  ecr?: AWS.ECR
-  awsConfig?: AWS.ConfigurationOptions
+  ecr?: ECRClient
+  awsConfig?: ECRClientConfig
   /**
    * Config for the AWS account containing the ECR repository.
    * Optional; if given, will prompt to add/update the policy on the
    * ECR repository, if access checks failed and the terminal is
    * interactive.
    */
-  repoAccountAwsConfig?: AWS.ConfigurationOptions
+  repoAccountAwsConfig?: ECRClientConfig
   imageUri: string
   log?: {
     info: (...args: any[]) => void
@@ -32,16 +41,16 @@ export default async function checkECRImageAccess({
 
   const { registryId, region, repositoryName, imageTag } =
     parseECRImageUri(imageUri)
-  if (!ecr) ecr = new AWS.ECR({ ...awsConfig, region })
+  if (!ecr) ecr = new ECRClient({ ...awsConfig, region })
 
   try {
-    const { images: [image] = [] } = await ecr
-      .batchGetImage({
+    const { images: [image] = [] } = await ecr.send(
+      new BatchGetImageCommand({
         registryId,
         repositoryName,
         imageIds: [{ imageTag }],
       })
-      .promise()
+    )
 
     const imageManifest = image?.imageManifest
 
@@ -52,21 +61,21 @@ export default async function checkECRImageAccess({
       JSON.parse(imageManifest)
     )
 
-    await ecr
-      .batchCheckLayerAvailability({
+    await ecr.send(
+      new BatchCheckLayerAvailabilityCommand({
         registryId,
         repositoryName,
         layerDigests: [config.digest, ...layers.map((l) => l.digest)],
       })
-      .promise()
+    )
 
-    await ecr
-      .getDownloadUrlForLayer({
+    await ecr.send(
+      new GetDownloadUrlForLayerCommand({
         registryId,
         repositoryName,
         layerDigest: layers[0].digest,
       })
-      .promise()
+    )
 
     log.error(`ECR image is accessible: ${imageUri}`)
     return true
@@ -106,12 +115,10 @@ The policy should include:
 `)
 
   if (repoAccountAwsConfig && isInteractive()) {
-    const { Account } = await new AWS.STS({
+    const { Account } = await new STSClient({
       credentials: ecr.config.credentials,
       region,
-    })
-      .getCallerIdentity()
-      .promise()
+    }).send(new GetCallerIdentityCommand())
     if (!Account) {
       log.error(`failed to determine AWS account`)
       return false
@@ -127,24 +134,25 @@ The policy should include:
     ])
     if (!update) return false
 
-    const srcEcr = new AWS.ECR({
+    const srcEcr = new ECRClient({
       ...repoAccountAwsConfig,
       region,
     })
     const { policyText } = await srcEcr
-      .getRepositoryPolicy({
-        registryId,
-        repositoryName,
-      })
-      .promise()
-      .catch((error): AWS.ECR.GetRepositoryPolicyResponse => {
+      .send(
+        new GetRepositoryPolicyCommand({
+          registryId,
+          repositoryName,
+        })
+      )
+      .catch((error): { policyText?: string } => {
         if (error.name === 'RepositoryPolicyNotFoundException') return {}
         throw error
       })
 
     const policy: any = JSON.parse(policyText || '{}')
-    await srcEcr
-      .setRepositoryPolicy({
+    await srcEcr.send(
+      new SetRepositoryPolicyCommand({
         repositoryName,
         policyText: JSON.stringify(
           {
@@ -165,7 +173,7 @@ The policy should include:
           2
         ),
       })
-      .promise()
+    )
     log.info(
       `updated policy on ECR repository ${formatECRRepositoryHostname({
         registryId,

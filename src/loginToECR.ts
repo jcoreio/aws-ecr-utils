@@ -1,19 +1,25 @@
 /**
  * @prettier
  */
-import AWS from 'aws-sdk'
 import { spawn } from 'promisify-child-process'
 import base64 from 'base64-js'
+import {
+  ECRClient,
+  ECRClientConfig,
+  GetAuthorizationTokenCommand,
+} from '@aws-sdk/client-ecr'
 
 export default async function loginToECR({
   ecr,
   awsConfig,
 }: {
-  ecr?: AWS.ECR
-  awsConfig?: AWS.ConfigurationOptions
+  ecr?: ECRClient
+  awsConfig?: ECRClientConfig
 }): Promise<void> {
-  if (!ecr) ecr = new AWS.ECR(awsConfig)
-  const { authorizationData } = await ecr.getAuthorizationToken().promise()
+  if (!ecr) ecr = new ECRClient({ ...awsConfig })
+  const { authorizationData } = await ecr.send(
+    new GetAuthorizationTokenCommand()
+  )
   const { authorizationToken, proxyEndpoint } = authorizationData?.[0] || {}
   if (!authorizationToken) {
     throw new Error('failed to get authorizationToken from ECR')

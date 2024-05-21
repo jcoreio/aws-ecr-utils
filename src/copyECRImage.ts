@@ -1,8 +1,8 @@
-import AWS from 'aws-sdk'
 import { spawn } from 'promisify-child-process'
 import loginToECR from './loginToECR'
 import ecrImageExists from './ecrImageExists'
 import parseECRImageUri from './parseECRImageUri'
+import { ECRClient, ECRClientConfig } from '@aws-sdk/client-ecr'
 
 export default async function copyECRImage({
   from,
@@ -10,13 +10,13 @@ export default async function copyECRImage({
 }: {
   from: {
     imageUri: string
-    ecr?: AWS.ECR
-    awsConfig?: AWS.ConfigurationOptions
+    ecr?: ECRClient
+    awsConfig?: ECRClientConfig
   }
   to: {
     imageUri: string
-    ecr?: AWS.ECR
-    awsConfig?: AWS.ConfigurationOptions
+    ecr?: ECRClient
+    awsConfig?: ECRClientConfig
   }
 }): Promise<void> {
   if (from.imageUri === to.imageUri) return
