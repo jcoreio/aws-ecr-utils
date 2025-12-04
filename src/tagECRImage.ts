@@ -30,7 +30,7 @@ export default async function tagECRImage({
         imageIds: [{ imageTag }],
       })
     )
-    .then((r) => r?.images?.[0]?.imageManifest)
+    .then((r) => r.images?.[0]?.imageManifest)
 
   if (!imageManifest) {
     throw new Error(`failed to get image manifest for ${imageUri}`)
@@ -50,7 +50,6 @@ export default async function tagECRImage({
           })
         )
       } catch (error) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((error as any)?.code !== 'ImageAlreadyExistsException') throw error
       }
     }

@@ -44,7 +44,7 @@ export default async function checkECRImageAccess({
   if (!ecr) ecr = new ECRClient({ ...awsConfig, region })
 
   try {
-    const { images: [image] = [] } = await ecr.send(
+    const { images = [] } = await ecr.send(
       new BatchGetImageCommand({
         registryId,
         repositoryName,
@@ -52,7 +52,7 @@ export default async function checkECRImageAccess({
       })
     )
 
-    const imageManifest = image?.imageManifest
+    const imageManifest = images[0]?.imageManifest
 
     if (!imageManifest) {
       throw new Error(`imageManifest not found for: ${imageUri}`)
@@ -145,8 +145,14 @@ The policy should include:
           repositoryName,
         })
       )
-      .catch((error): { policyText?: string } => {
-        if (error.name === 'RepositoryPolicyNotFoundException') return {}
+      .catch((error: unknown): { policyText?: string } => {
+        if (
+          error &&
+          typeof error === 'object' &&
+          'name' in error &&
+          error.name === 'RepositoryPolicyNotFoundException'
+        )
+          return {}
         throw error
       })
 

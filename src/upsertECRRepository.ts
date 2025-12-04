@@ -24,7 +24,7 @@ export default async function upsertECRRepository({
     )
     const repository = repositories?.[0]
     if (repository) return repository
-  } catch (error) {
+  } catch {
     // ignore
   }
 

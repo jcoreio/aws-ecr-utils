@@ -40,15 +40,22 @@ export default async function checkECRRepositoryPolicy({
   const rootUserMatch = /^arn:aws:iam::(\d+):root$/.exec(awsPrincipal)
   if (rootUserMatch) awsPrincipal = rootUserMatch[1]
 
-  const principalAliases = /^(\d+)$/.test(awsPrincipal)
-    ? [awsPrincipal, `arn:aws:iam::${awsPrincipal}:root`]
+  const principalAliases =
+    /^(\d+)$/.test(awsPrincipal) ?
+      [awsPrincipal, `arn:aws:iam::${awsPrincipal}:root`]
     : [awsPrincipal]
 
   if (!ecr) ecr = new ECRClient({ ...awsConfig })
   const { policyText } = await ecr
     .send(new GetRepositoryPolicyCommand({ repositoryName }))
-    .catch((error): { policyText?: string } => {
-      if (error.name === 'RepositoryPolicyNotFoundException') return {}
+    .catch((error: unknown): { policyText?: string } => {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'name' in error &&
+        error.name === 'RepositoryPolicyNotFoundException'
+      )
+        return {}
       throw error
     })
   const policy: any = JSON.parse(policyText || '{}')
@@ -67,7 +74,6 @@ export default async function checkECRRepositoryPolicy({
     (Array.isArray(statementPrincipal) &&
       statementPrincipal.some((s) => principalAliases.includes(s)))
   ) {
-    // eslint-disable-next-line no-console
     log.info(
       `Found policy on ECR repository ${repositoryName} to allow access for AWS Principal ${awsPrincipal}.`
     )
@@ -111,11 +117,9 @@ The policy should include:
         statementForAction.Principal = {
           ...statementForAction.Principal,
           AWS: [
-            ...(typeof statementPrincipal === 'string'
-              ? [statementPrincipal]
-              : Array.isArray(statementPrincipal)
-              ? statementPrincipal
-              : []),
+            ...(typeof statementPrincipal === 'string' ? [statementPrincipal]
+            : Array.isArray(statementPrincipal) ? statementPrincipal
+            : []),
             awsPrincipal,
           ],
         }

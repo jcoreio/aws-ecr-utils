@@ -28,7 +28,7 @@ export default async function loginToECR({
     throw new Error('failed to get proxyEndpoint from ECR')
   }
   // this is silly...
-  const decoded = new Buffer(base64.toByteArray(authorizationToken)).toString(
+  const decoded = Buffer.from(base64.toByteArray(authorizationToken)).toString(
     'utf8'
   )
   const [user, password] = decoded.split(/:/)
