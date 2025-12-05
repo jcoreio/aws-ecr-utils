@@ -8,7 +8,7 @@ import {
   ECRClientConfig,
   GetAuthorizationTokenCommand,
 } from '@aws-sdk/client-ecr'
-import parseECRImageUri from './parseECRImageUri.js'
+import parseECRImageUri from './parseECRImageUri'
 import * as log4jcore from 'log4jcore'
 
 const log = log4jcore.logger('@jcoreio/aws-ecr-utils/loginToECR')
