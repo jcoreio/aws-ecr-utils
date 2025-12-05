@@ -41,7 +41,7 @@ export default async function loginToECR({
         })
       )
     )
-    return 
+    return
   }
   if (!ecr) ecr = new ECRClient({ ...awsConfig })
 
