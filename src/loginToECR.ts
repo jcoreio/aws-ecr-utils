@@ -21,7 +21,7 @@ export default async function loginToECR({
   ecr?: ECRClient
   forImages?: string[]
   awsConfig?: ECRClientConfig
-}): Promise<void> {
+} = {}): Promise<void> {
   if (forImages) {
     log.debug('logging into AWS ECR for images:', forImages)
     const regions = new Set(
