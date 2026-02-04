@@ -73,12 +73,9 @@ export default async function loginToECR({
     )
   )
   const child = spawn('docker', dockerArgs, {
-    stdio: ['pipe', 'pipe', 'inherit'],
+    stdio: ['pipe', 'pipe', 'inherit'] as const,
     encoding: 'utf8',
   })
-  if (!child.stdin) {
-    throw new Error('expected child.stdin to be defined')
-  }
   child.stdin.write(password)
   child.stdin.end()
   await child.then(

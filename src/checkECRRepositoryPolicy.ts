@@ -5,7 +5,7 @@ import {
   SetRepositoryPolicyCommand,
 } from '@aws-sdk/client-ecr'
 import inquirer from 'inquirer'
-import isInteractive from 'is-interactive'
+import { isInteractive } from './isInteractive'
 
 /**
  * Checks if the given ECR repository has a sufficient repository
@@ -102,7 +102,7 @@ The policy should include:
     2
   ).replace(/\n/gm, '\n  ')}
 `)
-  if (isInteractive()) {
+  if (isInteractive) {
     const { update } = await inquirer.prompt([
       {
         name: 'update',

@@ -10,7 +10,7 @@ import {
 import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts'
 import parseECRImageUri from './parseECRImageUri'
 import { ImageManifestSchema } from './ImageManifestSchema'
-import isInteractive from 'is-interactive'
+import { isInteractive } from './isInteractive'
 import inquirer from 'inquirer'
 import formatECRRepositoryHostname from './formatECRRepositoryHostname'
 
@@ -114,7 +114,7 @@ The policy should include:
   ).replace(/\n/gm, '\n  ')}
 `)
 
-  if (repoAccountAwsConfig && isInteractive()) {
+  if (repoAccountAwsConfig && isInteractive) {
     const { Account } = await new STSClient({
       credentials: ecr.config.credentials,
       region,
