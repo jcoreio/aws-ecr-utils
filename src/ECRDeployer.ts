@@ -17,7 +17,7 @@ export interface ECRDeployerOptions {
   awsConfig?: ECRClientConfig
   /**
    * {@link ECRDeployer#release} will only add a version tag if the current git branch
-   * is one of these branches (defaults to `['master', 'main', 'release']`)
+   * is one of these branches (defaults to `['master', 'main', 'release', 'beta']`)
    */
   releaseBranches?: string[]
   /**
@@ -224,7 +224,8 @@ export class ECRDeployer {
       branch: `${base}:${branch}`,
       commitHash: `${base}:${commitHash}`,
     }
-    const { releaseBranches = ['master', 'main', 'release'] } = this.options
+    const { releaseBranches = ['master', 'main', 'release', 'beta'] } =
+      this.options
     if (releaseBranches.includes(branch)) {
       const version =
         process.env.OVERRIDE_ECR_VERSION_TAG || packageJson.contents.version
