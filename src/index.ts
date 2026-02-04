@@ -9,3 +9,4 @@ export { default as checkECRRepositoryPolicy } from './checkECRRepositoryPolicy.
 export { default as checkECRImageAccess } from './checkECRImageAccess.ts'
 export { default as formatECRRepositoryHostname } from './formatECRRepositoryHostname.ts'
 export { default as formatECRImageUri } from './formatECRImageUri.ts'
+export { ECRDeployer, type ECRDeployerOptions } from './ECRDeployer.ts'
