@@ -26,11 +26,26 @@ export interface ECRDeployerOptions {
 }
 
 /**
+ * Options for {@link ECRDeployer#build}
+ */
+export interface BuildOptions {
+  /**
+   * the path to build (defaults to `.`)
+   */
+  path?: string
+  /**
+   * If `true`, doesn't pass `--build-arg NPM_TOKEN=...`
+   */
+  noNpmTokenArg?: boolean
+}
+
+/**
  * Class that implements our conventional process for deploying docker images to ECR.
  *
- * The CI build step should build the docker image (you may want to use {@link getNpmToken}
- * to pass an `NPM_TOKEN` build arg) and then call {@link push} to push the image to
- * ECR tagged with the git commit hash.
+ * The CI build step should build the docker image (you may want to use {@link build},
+ * or {@link getLocalDockerTag} and {@link getNpmToken} if running the build command
+ * yourself) and then call {@link push} to push the image to ECR tagged with the git
+ * commit hash.
  *
  * The CI release step should call {@link release} to add tags for the git branch and
  * the `version` in your `package.json`.
@@ -103,6 +118,42 @@ export class ECRDeployer {
       throw new Error(`failed to find enclosing project package.json`)
     }
     return { file, contents: JSON.parse(await fs.readFile(file, 'utf8')) }
+  }
+
+  async getLocalDockerTag() {
+    return (await this.getDockerTags()).commitHash
+  }
+
+  async build(options?: BuildOptions): Promise<void>
+  async build(args: string[], options?: BuildOptions): Promise<void>
+  async build(
+    args?: string[] | BuildOptions,
+    options?: BuildOptions
+  ): Promise<void> {
+    if (!Array.isArray(args)) {
+      options = args
+      args = []
+    }
+
+    const [npmToken, tag] = await Promise.all([
+      options?.noNpmTokenArg ? undefined : this.getNpmToken(),
+      this.getLocalDockerTag(),
+    ])
+
+    await spawn(
+      'docker',
+      [
+        'build',
+        options?.path ?? '.',
+        ...(npmToken ?
+          ['--build-arg', `NPM_TOKEN=${await this.getNpmToken()}`]
+        : []),
+        '--tag',
+        tag,
+        ...args,
+      ],
+      { stdio: 'inherit' }
+    )
   }
 
   async getDockerTags(): Promise<{
