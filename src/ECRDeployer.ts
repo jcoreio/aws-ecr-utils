@@ -47,6 +47,9 @@ export interface BuildOptions {
  * yourself) and then call {@link push} to push the image to ECR tagged with the git
  * commit hash.
  *
+ * By default {@link build} assumes that your `Dockerfile` takes an `NPM_TOKEN` arg,
+ * if not you can call `build({ noNpmTokenArg: true })`.
+ *
  * The CI release step should call {@link release} to add tags for the git branch and
  * the `version` in your `package.json`.
  *
