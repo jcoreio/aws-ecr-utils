@@ -58,9 +58,7 @@ export class ECRDeployer {
 
   async getCommitHash() {
     return (
-      await spawn('git', ['rev-parse', 'HEAD'], {
-        encoding: 'utf8',
-      })
+      await spawn('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' })
     ).stdout.trim()
   }
 
@@ -158,12 +156,12 @@ export class ECRDeployer {
       await spawn(
         'docker',
         ['tag', '-f', commitHash, `${ecrHost}/${commitHash}`],
-        {
-          stdio: 'inherit',
-        }
+        { stdio: 'inherit' }
       )
     }
-    await spawn('docker', ['push', `${ecrHost}/${commitHash}`])
+    await spawn('docker', ['push', `${ecrHost}/${commitHash}`], {
+      stdio: 'inherit',
+    })
   }
 
   async release() {
