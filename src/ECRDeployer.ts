@@ -11,6 +11,7 @@ import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts'
 import { once } from './once.ts'
 import loginToECR from './loginToECR.ts'
 import os from 'os'
+import ecrImageExists from './ecrImageExists.ts'
 
 export interface ECRDeployerOptions {
   awsConfig?: ECRClientConfig
@@ -23,6 +24,18 @@ export interface ECRDeployerOptions {
    * The name of the ECR repository
    */
   repositoryName: string
+  /**
+   * Options for {@link ECRDeployer#build}.  If a custom function is given,
+   * it will be called instead of running `docker build`.
+   */
+  build?:
+    | (BuildOptions & { args?: string[] })
+    | ((options: {
+        /**
+         * The tag to apply to the local docker image
+         */
+        tag: string
+      }) => Promise<void>)
 }
 
 /**
@@ -42,13 +55,11 @@ export interface BuildOptions {
 /**
  * Class that implements our conventional process for deploying docker images to ECR.
  *
- * The CI build step should build the docker image (you may want to use {@link build},
- * or {@link getLocalDockerTag} and {@link getNpmToken} if running the build command
- * yourself) and then call {@link push} to push the image to ECR tagged with the git
- * commit hash.
- *
- * By default {@link build} assumes that your `Dockerfile` takes an `NPM_TOKEN` arg,
- * if not you can call `build({ noNpmTokenArg: true })`.
+ * The CI build step should build and push the docker image if necessary; you can use
+ * {@link buildAndPushIfNecessary}.   If you need to customize the build you can pass
+ * options or even a custom function in {@link ECRDeployerOptions.build}, or you can
+ * even call {@link isPushed}, {@link build}, {@link push}, and {@link getNpmToken}
+ * yourself.
  *
  * The CI release step should call {@link release} to add tags for the git branch and
  * the `version` in your `package.json`.
@@ -137,26 +148,58 @@ export class ECRDeployer {
       options = args
       args = []
     }
+    const buildOptions = this.options.build
 
     const [npmToken, tag] = await Promise.all([
-      options?.noNpmTokenArg ? undefined : this.getNpmToken(),
+      (
+        (options?.noNpmTokenArg ??
+        (typeof buildOptions === 'function' ? undefined : (
+          buildOptions?.noNpmTokenArg
+        )))
+      ) ?
+        undefined
+      : this.getNpmToken(),
       this.getLocalDockerTag(),
     ])
+    if (typeof buildOptions === 'function') {
+      await buildOptions({ tag })
+      return
+    }
 
     await spawn(
       'docker',
       [
         'build',
-        options?.path ?? '.',
+        options?.path ?? buildOptions?.path ?? '.',
         ...(npmToken ?
           ['--build-arg', `NPM_TOKEN=${await this.getNpmToken()}`]
         : []),
         '--tag',
         tag,
+        ...(buildOptions?.args || []),
         ...args,
       ],
       { stdio: 'inherit' }
     )
+  }
+
+  async isPushed() {
+    const [ecrHost, tags] = await Promise.all([
+      this.getECRHost(),
+      this.getDockerTags(),
+    ])
+    const { awsConfig } = this.options
+
+    return await ecrImageExists({
+      awsConfig,
+      imageUri: `${ecrHost}/${tags.commitHash}`,
+    })
+  }
+
+  async buildAndPushIfNecessary() {
+    if (await this.isPushed()) return
+    await this.build()
+    await this.push()
   }
 
   async getDockerTags(): Promise<{
