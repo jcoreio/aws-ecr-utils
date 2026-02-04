@@ -4,7 +4,7 @@ import {
   CreateRepositoryCommand,
   DescribeRepositoriesCommand,
   ECRClient,
-  ECRClientConfig,
+  type ECRClientConfig,
   Repository,
 } from '@aws-sdk/client-ecr'
 

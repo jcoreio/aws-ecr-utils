@@ -5,10 +5,10 @@ import { spawn } from 'promisify-child-process'
 import base64 from 'base64-js'
 import {
   ECRClient,
-  ECRClientConfig,
+  type ECRClientConfig,
   GetAuthorizationTokenCommand,
 } from '@aws-sdk/client-ecr'
-import parseECRImageUri from './parseECRImageUri'
+import parseECRImageUri from './parseECRImageUri.ts'
 import * as log4jcore from 'log4jcore'
 
 const log = log4jcore.logger('@jcoreio/aws-ecr-utils/loginToECR')

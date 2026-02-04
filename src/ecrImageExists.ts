@@ -1,7 +1,7 @@
 import {
   DescribeImagesCommand,
   ECRClient,
-  ECRClientConfig,
+  type ECRClientConfig,
 } from '@aws-sdk/client-ecr'
 
 export default async function ecrImageExists({

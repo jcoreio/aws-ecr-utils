@@ -1,7 +1,7 @@
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
 
-import { parseECRImageUri } from '../src'
+import { parseECRImageUri } from '../src/index.ts'
 
 describe(`parseECRImageUri`, function () {
   it(`works`, async function () {

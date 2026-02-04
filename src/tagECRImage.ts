@@ -4,10 +4,10 @@
 import {
   BatchGetImageCommand,
   ECRClient,
-  ECRClientConfig,
+  type ECRClientConfig,
   PutImageCommand,
 } from '@aws-sdk/client-ecr'
-import parseECRImageUri from './parseECRImageUri'
+import parseECRImageUri from './parseECRImageUri.ts'
 
 export default async function tagECRImage({
   ecr,

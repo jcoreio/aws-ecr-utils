@@ -1,8 +1,8 @@
 import { spawn } from 'promisify-child-process'
-import loginToECR from './loginToECR'
-import ecrImageExists from './ecrImageExists'
-import parseECRImageUri from './parseECRImageUri'
-import { ECRClient, ECRClientConfig } from '@aws-sdk/client-ecr'
+import loginToECR from './loginToECR.ts'
+import ecrImageExists from './ecrImageExists.ts'
+import parseECRImageUri from './parseECRImageUri.ts'
+import { ECRClient, type ECRClientConfig } from '@aws-sdk/client-ecr'
 
 export default async function copyECRImage({
   from,

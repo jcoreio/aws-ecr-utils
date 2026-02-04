@@ -2,17 +2,17 @@ import {
   BatchCheckLayerAvailabilityCommand,
   BatchGetImageCommand,
   ECRClient,
-  ECRClientConfig,
+  type ECRClientConfig,
   GetDownloadUrlForLayerCommand,
   GetRepositoryPolicyCommand,
   SetRepositoryPolicyCommand,
 } from '@aws-sdk/client-ecr'
 import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts'
-import parseECRImageUri from './parseECRImageUri'
-import { ImageManifestSchema } from './ImageManifestSchema'
-import { isInteractive } from './isInteractive'
+import parseECRImageUri from './parseECRImageUri.ts'
+import { ImageManifestSchema } from './ImageManifestSchema.ts'
+import { isInteractive } from './isInteractive.ts'
 import inquirer from 'inquirer'
-import formatECRRepositoryHostname from './formatECRRepositoryHostname'
+import formatECRRepositoryHostname from './formatECRRepositoryHostname.ts'
 
 export default async function checkECRImageAccess({
   ecr,
@@ -37,7 +37,7 @@ export default async function checkECRImageAccess({
     error: (...args: any[]) => void
   }
 }): Promise<boolean> {
-  log.error('checking access to ECR image:', imageUri, '...')
+  log.error('checking access to ECR image:', imageUri, '....ts')
 
   const { registryId, region, repositoryName, imageTag } =
     parseECRImageUri(imageUri)

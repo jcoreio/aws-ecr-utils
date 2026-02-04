@@ -1,11 +1,11 @@
 import {
   ECRClient,
-  ECRClientConfig,
+  type ECRClientConfig,
   GetRepositoryPolicyCommand,
   SetRepositoryPolicyCommand,
 } from '@aws-sdk/client-ecr'
 import inquirer from 'inquirer'
-import { isInteractive } from './isInteractive'
+import { isInteractive } from './isInteractive.ts'
 
 /**
  * Checks if the given ECR repository has a sufficient repository

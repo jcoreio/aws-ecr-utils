@@ -1,4 +1,4 @@
-import formatECRRepositoryHostname from './formatECRRepositoryHostname'
+import formatECRRepositoryHostname from './formatECRRepositoryHostname.ts'
 
 export default function formatECRImageUri({
   registryId,
