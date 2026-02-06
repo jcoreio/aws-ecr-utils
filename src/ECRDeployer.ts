@@ -110,8 +110,12 @@ export class ECRDeployer {
     return region
   }
 
-  private async getECRHost() {
+  public async getECRHost() {
     return `${await this.getAWSAccountId()}.dkr.ecr.${await this.getRegion()}.amazonaws.com`
+  }
+
+  public async getImageId(tag: string) {
+    return `${await this.getECRHost()}/${this.options.repositoryName}:${tag}`
   }
 
   private async getProjectPackageJson() {
