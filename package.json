@@ -25,12 +25,12 @@
   },
   "homepage": "https://github.com/jcoreio/aws-ecr-utils#readme",
   "devDependencies": {
-    "@jcoreio/toolchain": "^5.8.8",
-    "@jcoreio/toolchain-circle": "^5.8.8",
-    "@jcoreio/toolchain-esnext": "^5.8.8",
-    "@jcoreio/toolchain-mocha": "^5.8.8",
-    "@jcoreio/toolchain-semantic-release": "^5.8.8",
-    "@jcoreio/toolchain-typescript": "^5.8.8",
+    "@jcoreio/toolchain": "^5.9.0",
+    "@jcoreio/toolchain-circle": "^5.9.0",
+    "@jcoreio/toolchain-esnext": "^5.9.0",
+    "@jcoreio/toolchain-mocha": "^5.9.0",
+    "@jcoreio/toolchain-semantic-release": "^5.9.0",
+    "@jcoreio/toolchain-typescript": "^5.9.0",
     "@types/chai": "^4.3.5",
     "@types/inquirer": "^8.2.10",
     "@types/mocha": "^10.0.1",
@@ -83,6 +83,6 @@
   },
   "packageManager": "pnpm@10.6.5",
   "@jcoreio/toolchain": {
-    "migratedVersion": "5.8.8"
+    "migratedVersion": "5.9.0"
   }
 }
