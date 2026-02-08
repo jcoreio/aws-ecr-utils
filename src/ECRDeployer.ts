@@ -154,21 +154,29 @@ export class ECRDeployer {
     }
     const buildOptions = this.options.build
 
-    const [npmToken, tag] = await Promise.all([
-      (
-        (options?.noNpmTokenArg ??
-        (typeof buildOptions === 'function' ? undefined : (
-          buildOptions?.noNpmTokenArg
-        )))
-      ) ?
-        undefined
-      : this.getNpmToken(),
-      this.getLocalDockerTag(),
-    ])
+    const tag = await this.getLocalDockerTag()
     if (typeof buildOptions === 'function') {
       await buildOptions({ tag })
       return
     }
+
+    const context = options?.path ?? buildOptions?.path ?? '.'
+    const dockerfile = path.resolve(context, 'Dockerfile')
+
+    const dockerfileContent = await fs.readFile(dockerfile, 'utf8')
+    const hasNpmrcSecret = dockerfileContent.includes(
+      '--mount=type=secret,id=npmrc'
+    )
+    const hasNpmTokenArg = /^\s*ARG\s*NPM_TOKEN\s*$/m.test(dockerfileContent)
+
+    const npmToken =
+      (
+        hasNpmTokenArg &&
+        !options?.noNpmTokenArg &&
+        !buildOptions?.noNpmTokenArg
+      ) ?
+        await this.getNpmToken()
+      : undefined
 
     await spawn(
       'docker',
@@ -177,6 +185,9 @@ export class ECRDeployer {
         options?.path ?? buildOptions?.path ?? '.',
         ...(npmToken ?
           ['--build-arg', `NPM_TOKEN=${await this.getNpmToken()}`]
+        : []),
+        ...(hasNpmrcSecret ?
+          ['--secret', `id=npmrc,src=${path.join(os.homedir(), '.npmrc')}`]
         : []),
         '--tag',
         tag,
