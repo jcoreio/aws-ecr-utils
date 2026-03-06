@@ -8,8 +8,8 @@ import {
   type ECRClientConfig,
   GetAuthorizationTokenCommand,
 } from '@aws-sdk/client-ecr'
-import parseECRImageUri from './parseECRImageUri.ts'
 import * as log4jcore from 'log4jcore'
+import parseECREndpoint from './parseECREndpoint'
 
 const log = log4jcore.logger('@jcoreio/aws-ecr-utils/loginToECR')
 
@@ -17,27 +17,24 @@ export default async function loginToECR({
   ecr,
   forImages,
   awsConfig,
+  endpoint: endpoint,
 }: {
   ecr?: ECRClient
   forImages?: string[]
   awsConfig?: ECRClientConfig
+  endpoint?: string
 } = {}): Promise<void> {
   if (forImages) {
     log.debug('logging into AWS ECR for images:', forImages)
-    const regions = new Set(
-      forImages.flatMap((image) => {
-        try {
-          return [parseECRImageUri(image).region]
-        } catch {
-          return []
-        }
-      })
+    const endpoints = new Set(
+      forImages.flatMap((image) => image.replace(/\/.*/, ''))
     )
-    log.debug('parsed AWS regions from images:', regions)
+    log.debug('got AWS proxy endpoints from images:', endpoints)
     await Promise.all(
-      [...regions].map(async (region) =>
+      [...endpoints].map(async (proxyEndpoint) =>
         loginToECR({
-          awsConfig: { ...awsConfig, region },
+          awsConfig: { ...awsConfig, region: parseECREndpoint(proxyEndpoint).region },
+          endpoint: proxyEndpoint,
         })
       )
     )
@@ -49,15 +46,16 @@ export default async function loginToECR({
   const { authorizationData } = await ecr.send(
     new GetAuthorizationTokenCommand()
   )
-  const { authorizationToken, proxyEndpoint } = authorizationData?.[0] || {}
+  const { authorizationToken, proxyEndpoint: defaultEndpoint } = authorizationData?.[0] || {}
+  if (!endpoint) endpoint = defaultEndpoint
   log.debug('GetAuthorizationToken data:', {
     authorizationToken,
-    proxyEndpoint,
+    proxyEndpoint: endpoint,
   })
   if (!authorizationToken) {
     throw new Error('failed to get authorizationToken from ECR')
   }
-  if (!proxyEndpoint) {
+  if (!endpoint) {
     throw new Error('failed to get proxyEndpoint from ECR')
   }
   // this is silly...
@@ -65,7 +63,7 @@ export default async function loginToECR({
     'utf8'
   )
   const [user, password] = decoded.split(/:/)
-  const dockerArgs = ['login', '-u', user, '--password-stdin', proxyEndpoint]
+  const dockerArgs = ['login', '-u', user, '--password-stdin', endpoint]
   log.debug(
     'running: docker',
     ...dockerArgs.map((arg) =>
