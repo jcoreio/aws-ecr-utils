@@ -33,7 +33,10 @@ export default async function loginToECR({
     await Promise.all(
       [...endpoints].map(async (proxyEndpoint) =>
         loginToECR({
-          awsConfig: { ...awsConfig, region: parseECREndpoint(proxyEndpoint).region },
+          awsConfig: {
+            ...awsConfig,
+            region: parseECREndpoint(proxyEndpoint).region,
+          },
           endpoint: proxyEndpoint,
         })
       )
@@ -46,7 +49,8 @@ export default async function loginToECR({
   const { authorizationData } = await ecr.send(
     new GetAuthorizationTokenCommand()
   )
-  const { authorizationToken, proxyEndpoint: defaultEndpoint } = authorizationData?.[0] || {}
+  const { authorizationToken, proxyEndpoint: defaultEndpoint } =
+    authorizationData?.[0] || {}
   if (!endpoint) endpoint = defaultEndpoint
   log.debug('GetAuthorizationToken data:', {
     authorizationToken,
