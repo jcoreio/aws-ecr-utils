@@ -8,12 +8,17 @@ const LayerSchema = z.object({
   mediaType: MediaType,
   size: Size,
   digest: Digest,
+  platform: z
+    .object({ architecture: z.string(), os: z.string() })
+    .partial()
+    .optional(),
 })
 
 export const ImageManifestSchema = z.object({
   schemaVersion: z.literal(2),
   mediaType: z.string(),
-  config: LayerSchema,
-  layers: z.array(LayerSchema),
+  manifests: z.array(LayerSchema).optional(),
+  config: LayerSchema.optional(),
+  layers: z.array(LayerSchema).optional(),
 })
 export type ImageManifestSchema = z.infer<typeof ImageManifestSchema>

@@ -57,15 +57,42 @@ export default async function checkECRImageAccess({
     if (!imageManifest) {
       throw new Error(`imageManifest not found for: ${imageUri}`)
     }
-    const { config, layers } = ImageManifestSchema.parse(
+    const { config, layers, manifests } = ImageManifestSchema.parse(
       JSON.parse(imageManifest)
     )
+
+    const layerDigests: string[] = []
+
+    if (config) layerDigests.push(config.digest)
+    if (layers) layerDigests.push(...layers.map((l) => l.digest))
+    if (manifests) {
+      for (const manifest of manifests) {
+        const { images = [] } = await ecr.send(
+          new BatchGetImageCommand({
+            registryId,
+            repositoryName,
+            imageIds: [{ imageDigest: manifest.digest }],
+          })
+        )
+
+        const imageManifest = images[0]?.imageManifest
+
+        if (!imageManifest) {
+          throw new Error(`imageManifest not found for: ${imageUri}`)
+        }
+        const { config, layers } = ImageManifestSchema.parse(
+          JSON.parse(imageManifest)
+        )
+        if (config) layerDigests.push(config.digest)
+        if (layers) layerDigests.push(...layers.map((l) => l.digest))
+      }
+    }
 
     await ecr.send(
       new BatchCheckLayerAvailabilityCommand({
         registryId,
         repositoryName,
-        layerDigests: [config.digest, ...layers.map((l) => l.digest)],
+        layerDigests,
       })
     )
 
@@ -73,7 +100,7 @@ export default async function checkECRImageAccess({
       new GetDownloadUrlForLayerCommand({
         registryId,
         repositoryName,
-        layerDigest: layers[0].digest,
+        layerDigest: layerDigests[0],
       })
     )
 
