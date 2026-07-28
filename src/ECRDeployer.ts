@@ -13,6 +13,23 @@ import loginToECR from './loginToECR.ts'
 import os from 'os'
 import ecrImageExists from './ecrImageExists.ts'
 
+const normalizeArch = {
+  arm64: 'arm64',
+  arm: 'arm',
+  'arm/v6': 'arm/v6',
+  'arm/v7': 'arm/v7',
+  '386': '386',
+  amd64: 'amd64',
+  aarch64: 'arm64',
+  armhf: 'arm',
+  armel: 'arm/v6',
+  i386: '386',
+  x86_64: 'amd64',
+  'x86-64': 'amd64',
+  x64: 'amd64',
+  x32: '386',
+} as const
+
 export interface ECRDeployerOptions {
   awsConfig?: ECRClientConfig
   /**
@@ -24,6 +41,10 @@ export interface ECRDeployerOptions {
    * The name of the ECR repository
    */
   repositoryName: string
+  /**
+   * If given, add architecture tags to individual images.
+   */
+  architectures?: (keyof typeof normalizeArch)[]
   /**
    * Options for {@link ECRDeployer#build}.  If a custom function is given,
    * it will be called instead of running `docker build`.
@@ -71,7 +92,10 @@ export class ECRDeployer {
   options: ECRDeployerOptions
 
   constructor(options: ECRDeployerOptions) {
-    this.options = options
+    this.options = {
+      ...options,
+      architectures: options.architectures?.map((arch) => normalizeArch[arch]),
+    }
   }
 
   async getBranch() {
@@ -217,7 +241,7 @@ export class ECRDeployer {
     await this.push()
   }
 
-  async getDockerTags(): Promise<{
+  async getDockerTags(options?: { noArch?: boolean }): Promise<{
     latest: string
     branch: string
     commitHash: string
@@ -251,6 +275,21 @@ export class ECRDeployer {
       }
       result.version = `${base}:${version}`
     }
+    const { architectures } = this.options
+    if (architectures && !options?.noArch) {
+      const normArch =
+        process.arch in normalizeArch ?
+          normalizeArch[process.arch as keyof typeof normalizeArch]
+        : null
+      if (!normArch || !architectures.includes(normArch)) {
+        throw new Error(
+          `process.arch (${process.arch}) is missing from ECRDeployer options.architectures`
+        )
+      }
+      for (const key of Object.keys(result) as (keyof typeof result)[]) {
+        if (result[key]) result[key] += `-${normArch}`
+      }
+    }
     return result
   }
 
@@ -277,55 +316,85 @@ export class ECRDeployer {
     })
   }
 
+  async pushManifest() {
+    const { awsConfig, architectures } = this.options
+    if (!architectures) {
+      throw new Error(`pushManifest requires options.architectures`)
+    }
+    const [ecrHost, { commitHash }] = await Promise.all([
+      this.getECRHost(),
+      this.getDockerTags({ noArch: true }),
+      loginToECR({ awsConfig }),
+    ])
+    await spawn(
+      'docker',
+      [
+        'manifest',
+        'create',
+        '--amend',
+        `${ecrHost}/${commitHash}`,
+        ...architectures.map((arch) => `${ecrHost}/${commitHash}-${arch}`),
+      ],
+      { stdio: 'inherit' }
+    )
+    await spawn('docker', ['manifest', 'push', `${ecrHost}/${commitHash}`], {
+      stdio: 'inherit',
+    })
+  }
+
   async release() {
     const [commitHash, ecrHost, tags] = await Promise.all([
       this.getCommitHash(),
       this.getECRHost(),
-      this.getDockerTags(),
+      this.getDockerTags({ noArch: true }),
     ])
     const ecr = new ECRClient()
 
-    const { repositoryName } = this.options
+    const { repositoryName, architectures } = this.options
 
-    const { images: [image] = [] } = await ecr.send(
-      new BatchGetImageCommand({
-        repositoryName,
-        imageIds: [{ imageTag: commitHash }],
-      })
-    )
-
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    const imageManifest = image?.imageManifest
-
-    if (!imageManifest) {
-      throw new Error(
-        `failed to get image manifest for ${repositoryName}:${commitHash}`
+    for (const arch of [...(architectures || []), null]) {
+      const suffix = arch ? `-${arch}` : ''
+      const { images: [image] = [] } = await ecr.send(
+        new BatchGetImageCommand({
+          repositoryName,
+          imageIds: [{ imageTag: commitHash + suffix }],
+        })
       )
-    }
 
-    if (imageManifest) {
-      // add other tags to ECR
-      for (const key of Object.keys(tags) as (keyof typeof tags)[]) {
-        if (key === 'latest' || key === 'commitHash') continue
-        const tag = tags[key]?.replace(/^[^:]+:?/, '')
-        if (!tag) continue
-        // eslint-disable-next-line no-console
-        console.error(`Adding tag ${ecrHost}/${tags[key]}`)
-        try {
-          await ecr.send(
-            new PutImageCommand({
-              repositoryName,
-              imageManifest,
-              imageTag: tag.substring(tag.indexOf(':') + 1),
-            })
-          )
-        } catch (error) {
-          if (
-            error instanceof Object &&
-            'code' in error &&
-            error.code !== 'ImageAlreadyExistsException'
-          ) {
-            throw error
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      const imageManifest = image?.imageManifest
+
+      if (!imageManifest) {
+        throw new Error(
+          `failed to get image manifest for ${repositoryName}:${commitHash + suffix}`
+        )
+      }
+
+      if (imageManifest) {
+        // add other tags to ECR
+        for (const key of Object.keys(tags) as (keyof typeof tags)[]) {
+          if (key === 'latest' || key === 'commitHash') continue
+          let tag = tags[key]?.replace(/^[^:]+:?/, '')
+          if (!tag) continue
+          tag += suffix
+          // eslint-disable-next-line no-console
+          console.error(`Adding tag ${ecrHost}/${repositoryName}:${tag}`)
+          try {
+            await ecr.send(
+              new PutImageCommand({
+                repositoryName,
+                imageManifest,
+                imageTag: tag,
+              })
+            )
+          } catch (error) {
+            if (
+              error instanceof Object &&
+              'code' in error &&
+              error.code !== 'ImageAlreadyExistsException'
+            ) {
+              throw error
+            }
           }
         }
       }
