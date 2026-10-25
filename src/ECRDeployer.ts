@@ -236,6 +236,8 @@ export class ECRDeployer {
   }
 
   async buildAndPushIfNecessary() {
+    const { awsConfig } = this.options
+    await loginToECR({ awsConfig })
     if (await this.isPushed()) return
     await this.build()
     await this.push()
